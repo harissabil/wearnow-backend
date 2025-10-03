@@ -93,10 +93,32 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
 
         if (processedUserPhotoDimensions) {
             console.log(`Processed user photo dimensions: ${processedUserPhotoDimensions.width}x${processedUserPhotoDimensions.height}`);
+
+            // Check if dimensions exceed Bedrock's limit (2048x2048 = 4,194,304 pixels)
+            const userPhotoPixelCount = processedUserPhotoDimensions.width * processedUserPhotoDimensions.height;
+            const maxPixelCount = 4194304; // 2048 x 2048
+
+            if (userPhotoPixelCount > maxPixelCount) {
+                throw new Error(
+                    `User photo is too large (${processedUserPhotoDimensions.width}x${processedUserPhotoDimensions.height} = ${userPhotoPixelCount.toLocaleString()} pixels). ` +
+                    `Maximum allowed is 2048x2048 (4,194,304 pixels). Please resize the image before uploading.`
+                );
+            }
         }
 
         if (processedGarmentPhotoDimensions) {
             console.log(`Processed garment photo dimensions: ${processedGarmentPhotoDimensions.width}x${processedGarmentPhotoDimensions.height}`);
+
+            // Check if dimensions exceed Bedrock's limit
+            const garmentPhotoPixelCount = processedGarmentPhotoDimensions.width * processedGarmentPhotoDimensions.height;
+            const maxPixelCount = 4194304; // 2048 x 2048
+
+            if (garmentPhotoPixelCount > maxPixelCount) {
+                throw new Error(
+                    `Garment photo is too large (${processedGarmentPhotoDimensions.width}x${processedGarmentPhotoDimensions.height} = ${garmentPhotoPixelCount.toLocaleString()} pixels). ` +
+                    `Maximum allowed is 2048x2048 (4,194,304 pixels). Please resize the image before uploading.`
+                );
+            }
         }
 
         if (userPhotoSize > MAX_IMAGE_SIZE || garmentPhotoSize > MAX_IMAGE_SIZE) {

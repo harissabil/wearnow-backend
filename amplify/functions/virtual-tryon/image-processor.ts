@@ -15,6 +15,18 @@ export class ImageProcessor {
 
             console.log(`Input buffer first 4 bytes: ${inputBuffer.slice(0, 4).toString('hex')}`);
 
+            // Check for WebP (RIFF....WEBP)
+            if (inputBuffer[0] === 0x52 && inputBuffer[1] === 0x49 &&
+                inputBuffer[2] === 0x46 && inputBuffer[3] === 0x46) {
+                // This is a RIFF file, check if it's WebP
+                if (inputBuffer.length > 12 &&
+                    inputBuffer[8] === 0x57 && inputBuffer[9] === 0x45 &&
+                    inputBuffer[10] === 0x42 && inputBuffer[11] === 0x50) {
+                    console.log('Image is WebP format - Bedrock does not support WebP, this needs to be converted to JPEG/PNG on the client side');
+                    throw new Error('WebP format is not supported by Bedrock. Please upload JPEG or PNG images.');
+                }
+            }
+
             // Check if it's a JPEG (starts with FF D8)
             if (inputBuffer[0] !== 0xFF || inputBuffer[1] !== 0xD8) {
                 // Not a JPEG, check if it's PNG
@@ -37,8 +49,8 @@ export class ImageProcessor {
             return result;
         } catch (error) {
             console.error('Error processing image, returning original:', error);
-            // If processing fails, return original
-            return base64Image;
+            // If processing fails, throw the error so we can handle it properly
+            throw error;
         }
     }
 
