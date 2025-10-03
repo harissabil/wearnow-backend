@@ -1,17 +1,22 @@
 {
   "name": "amplify-backend-app-template",
   "version": "1.0.0",
-  "description": "",
+  "description": "WearNOW Backend - AWS Amplify Gen 2",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sandbox": "npx ampx sandbox",
+    "deploy": "npx ampx deploy",
+    "check": "node pre-deployment-check.js"
   },
-  "keywords": [],
+  "keywords": ["amplify", "aws", "bedrock", "virtual-tryon"],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@aws-amplify/backend": "^1.5.0",
     "@aws-amplify/backend-cli": "^1.2.9",
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.11.0",
     "aws-cdk": "^2.137.0",
     "aws-cdk-lib": "^2.137.0",
     "constructs": "^10.3.0",
@@ -20,6 +25,9 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "aws-amplify": "^6.6.6"
+    "@aws-sdk/client-bedrock-runtime": "^3.600.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "aws-amplify": "^6.6.6",
+    "sharp": "^0.33.0"
   }
 }
