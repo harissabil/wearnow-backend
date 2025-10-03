@@ -1,4 +1,5 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import {type ClientSchema, a, defineData} from "@aws-amplify/backend";
+import {virtualTryonFunction} from "../functions/virtual-tryon/resource";
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -7,19 +8,53 @@ specifies that any user authenticated via an API key can "create", "read",
 "update", and "delete" any "Todo" records.
 =========================================================================*/
 const schema = a.schema({
-  Todo: a
-    .model({
-      content: a.string(),
-    }).authorization(allow => [allow.owner()]),
+    UserPhoto: a
+        .model({
+            userId: a.string().required(),
+            photoUrl: a.string().required(),
+            isDefault: a.boolean().default(false),
+            uploadedAt: a.datetime().required(),
+        })
+        .authorization(allow => [allow.owner()]),
+
+    TryOnHistory: a
+        .model({
+            userId: a.string().required(),
+            userPhotoId: a.string().required(),
+            userPhotoUrl: a.string().required(),
+            garmentPhotoUrl: a.string().required(),
+            resultPhotoUrl: a.string(),
+            status: a.enum(['PROCESSING', 'COMPLETED', 'FAILED']),
+            errorMessage: a.string(),
+            metadata: a.json(),
+            completedAt: a.datetime(),
+        })
+        .authorization(allow => [allow.owner()]),
+
+    virtualTryOn: a
+        .mutation()
+        .arguments({
+            userId: a.string().required(),
+            userPhotoId: a.string().required(),
+            userPhotoUrl: a.string().required(),
+            garmentPhotoUrl: a.string().required(),
+            historyId: a.string().required(),
+            garmentClass: a.string(),
+            maskType: a.string(),
+            mergeStyle: a.string(),
+        })
+        .returns(a.json())
+        .authorization(allow => [allow.authenticated()])
+        .handler(a.handler.function(virtualTryonFunction)),
 });
 
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
-  schema,
-  authorizationModes: {
-    defaultAuthorizationMode: 'userPool',
-  },
+    schema,
+    authorizationModes: {
+        defaultAuthorizationMode: 'userPool',
+    },
 });
 
 /*== STEP 2 ===============================================================
