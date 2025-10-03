@@ -1,40 +1,22 @@
-import type {Handler} from 'aws-lambda';
+import type {Schema} from "../../data/resource";
 import {BedrockImageManipulation, GarmentClass, MergeStyle} from './bedrock-client';
 import {S3Utils} from './s3-utils';
 
-interface TryOnRequest {
-    userId: string;
-    userPhotoId: string;
-    userPhotoUrl: string;
-    garmentPhotoUrl: string;
-    historyId: string;
-    options?: {
-        garmentClass?: GarmentClass;
-        maskType?: 'GARMENT';
-        mergeStyle?: MergeStyle;
-    };
-}
-
-interface TryOnResponse {
-    success: boolean;
-    historyId: string;
-    resultUrl?: string;
-    errorMessage?: string;
-    processingTime?: number;
-}
-
-export const handler: Handler<TryOnRequest, TryOnResponse> = async (event) => {
+export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) => {
     const startTime = Date.now();
 
     console.log('Virtual Try-On Request:', JSON.stringify(event, null, 2));
 
     const {
         userId,
+        userPhotoId,
         userPhotoUrl,
         garmentPhotoUrl,
         historyId,
-        options = {},
-    } = event;
+        garmentClass,
+        maskType,
+        mergeStyle,
+    } = event.arguments;
 
     // Validate required fields
     if (!userId || !userPhotoUrl || !garmentPhotoUrl || !historyId) {
@@ -97,8 +79,8 @@ export const handler: Handler<TryOnRequest, TryOnResponse> = async (event) => {
         const result = await bedrockClient.virtualTryOn({
             sourceImage: userPhotoBase64,
             referenceImage: garmentPhotoBase64,
-            garmentClass: options.garmentClass || 'UPPER_BODY',
-            mergeStyle: options.mergeStyle || 'BALANCED',
+            garmentClass: (garmentClass as GarmentClass) || 'UPPER_BODY',
+            mergeStyle: (mergeStyle as MergeStyle) || 'BALANCED',
         });
 
         console.log('Virtual try-on completed successfully');
@@ -133,4 +115,3 @@ export const handler: Handler<TryOnRequest, TryOnResponse> = async (event) => {
         };
     }
 };
-

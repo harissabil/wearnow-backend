@@ -36,10 +36,24 @@ backend.virtualTryonFunction.addEnvironment(
     backend.storage.resources.bucket.bucketName
 );
 
-// Grant data access to functions
-backend.data.resources.tables['UserPhoto'].grantReadWriteData(
-    backend.virtualTryonFunction.resources.lambda
+// Grant DynamoDB permissions to virtual-tryon function using wildcard to avoid circular dependency
+const dynamoDbPolicy = new Policy(
+    backend.virtualTryonFunction.resources.lambda.stack,
+    'DynamoDBAccessPolicy',
+    {
+        statements: [
+            new PolicyStatement({
+                actions: [
+                    'dynamodb:GetItem',
+                    'dynamodb:PutItem',
+                    'dynamodb:UpdateItem',
+                    'dynamodb:DeleteItem',
+                    'dynamodb:Query',
+                    'dynamodb:Scan',
+                ],
+                resources: ['*'], // Use wildcard to avoid circular dependency
+            }),
+        ],
+    }
 );
-backend.data.resources.tables['TryOnHistory'].grantReadWriteData(
-    backend.virtualTryonFunction.resources.lambda
-);
+backend.virtualTryonFunction.resources.lambda.role?.attachInlinePolicy(dynamoDbPolicy);

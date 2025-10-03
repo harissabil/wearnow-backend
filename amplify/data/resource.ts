@@ -1,4 +1,5 @@
 import {type ClientSchema, a, defineData} from "@aws-amplify/backend";
+import {virtualTryonFunction} from "../functions/virtual-tryon/resource";
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -29,6 +30,22 @@ const schema = a.schema({
             completedAt: a.datetime(),
         })
         .authorization(allow => [allow.owner()]),
+
+    virtualTryOn: a
+        .mutation()
+        .arguments({
+            userId: a.string().required(),
+            userPhotoId: a.string().required(),
+            userPhotoUrl: a.string().required(),
+            garmentPhotoUrl: a.string().required(),
+            historyId: a.string().required(),
+            garmentClass: a.string(),
+            maskType: a.string(),
+            mergeStyle: a.string(),
+        })
+        .returns(a.json())
+        .authorization(allow => [allow.authenticated()])
+        .handler(a.handler.function(virtualTryonFunction)),
 });
 
 export type Schema = ClientSchema<typeof schema>;
