@@ -11,7 +11,6 @@ const schema = a.schema({
         .model({
             userId: a.string().required(),
             photoUrl: a.string().required(),
-            thumbnailUrl: a.string(),
             isDefault: a.boolean().default(false),
             uploadedAt: a.datetime().required(),
         })
@@ -24,7 +23,6 @@ const schema = a.schema({
             userPhotoUrl: a.string().required(),
             garmentPhotoUrl: a.string().required(),
             resultPhotoUrl: a.string(),
-            thumbnailUrl: a.string(),
             status: a.enum(['PROCESSING', 'COMPLETED', 'FAILED']),
             errorMessage: a.string(),
             metadata: a.json(),

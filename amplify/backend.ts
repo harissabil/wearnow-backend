@@ -3,7 +3,6 @@ import {auth} from './auth/resource';
 import {data} from './data/resource';
 import {storage} from './storage/resource';
 import {virtualTryonFunction} from './functions/virtual-tryon/resource';
-import {imageProcessorFunction} from './functions/image-processor/resource';
 import {Policy, PolicyStatement} from 'aws-cdk-lib/aws-iam';
 
 const backend = defineBackend({
@@ -11,7 +10,6 @@ const backend = defineBackend({
     data,
     storage,
     virtualTryonFunction,
-    imageProcessorFunction,
 });
 
 // Grant Bedrock permissions to virtual-tryon function
@@ -37,9 +35,6 @@ backend.virtualTryonFunction.addEnvironment(
     'S3_BUCKET_NAME',
     backend.storage.resources.bucket.bucketName
 );
-
-// Grant S3 permissions to image-processor function
-backend.storage.resources.bucket.grantReadWrite(backend.imageProcessorFunction.resources.lambda);
 
 // Grant data access to functions
 backend.data.resources.tables['UserPhoto'].grantReadWriteData(
