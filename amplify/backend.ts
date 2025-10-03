@@ -53,6 +53,7 @@ const dynamoDbPolicy = new Policy(
         statements: [
             new PolicyStatement({
                 actions: [
+                    'dynamodb:ListTables',
                     'dynamodb:GetItem',
                     'dynamodb:PutItem',
                     'dynamodb:UpdateItem',
