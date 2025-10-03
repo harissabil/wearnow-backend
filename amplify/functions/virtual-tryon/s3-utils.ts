@@ -101,8 +101,9 @@ export class S3Utils {
         try {
             const url = new URL(urlOrKey);
             // Handle both s3:// and https:// URLs
-            const pathParts = url.pathname.split('/').filter(p => p);
-            return pathParts.join('/');
+            // Remove the leading slash and decode URL-encoded characters
+            const pathname = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+            return decodeURIComponent(pathname);
         } catch {
             // If URL parsing fails, assume it's already a key
             return urlOrKey;
@@ -121,4 +122,3 @@ export class S3Utils {
         return 'image/jpeg'; // default
     }
 }
-
