@@ -1,6 +1,7 @@
 import type {Schema} from "../../data/resource";
 import {BedrockImageManipulation, GarmentClass, MergeStyle} from './bedrock-client';
 import {S3Utils} from './s3-utils';
+import {ImageProcessor} from './image-processor';
 
 export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) => {
     const startTime = Date.now();
@@ -55,38 +56,47 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
         const garmentPhotoKey = S3Utils.extractS3Key(garmentPhotoUrl);
         const garmentPhotoBase64 = await s3Utils.downloadImageAsBase64(garmentPhotoKey);
 
-        // Step 2: Validate images
-        if (!BedrockImageManipulation.validateImageFormat(userPhotoBase64)) {
+        // Step 2: Process images to remove EXIF and clean for Bedrock
+        console.log('Processing images to remove EXIF metadata and optimize for Bedrock...');
+
+        const userPhotoInfo = await ImageProcessor.getImageInfo(userPhotoBase64);
+        console.log('Original user photo info:', userPhotoInfo);
+
+        const garmentPhotoInfo = await ImageProcessor.getImageInfo(garmentPhotoBase64);
+        console.log('Original garment photo info:', garmentPhotoInfo);
+
+        // Process images to remove EXIF and optimize
+        const cleanUserPhotoBase64 = await ImageProcessor.processImageForBedrock(userPhotoBase64);
+        const cleanGarmentPhotoBase64 = await ImageProcessor.processImageForBedrock(garmentPhotoBase64);
+
+        console.log('Images processed and cleaned for Bedrock');
+
+        // Step 3: Validate images
+        if (!BedrockImageManipulation.validateImageFormat(cleanUserPhotoBase64)) {
             throw new Error('User photo is not in a supported format (JPEG or PNG)');
         }
 
-        if (!BedrockImageManipulation.validateImageFormat(garmentPhotoBase64)) {
+        if (!BedrockImageManipulation.validateImageFormat(cleanGarmentPhotoBase64)) {
             throw new Error('Garment photo is not in a supported format (JPEG or PNG)');
         }
 
         // Check image sizes
-        const userPhotoSize = BedrockImageManipulation.getImageSize(userPhotoBase64);
-        const garmentPhotoSize = BedrockImageManipulation.getImageSize(garmentPhotoBase64);
+        const userPhotoSize = BedrockImageManipulation.getImageSize(cleanUserPhotoBase64);
+        const garmentPhotoSize = BedrockImageManipulation.getImageSize(cleanGarmentPhotoBase64);
 
-        console.log(`User photo size: ${userPhotoSize} bytes (${(userPhotoSize / 1024 / 1024).toFixed(2)} MB)`);
-        console.log(`Garment photo size: ${garmentPhotoSize} bytes (${(garmentPhotoSize / 1024 / 1024).toFixed(2)} MB)`);
-        console.log(`User photo format: ${userPhotoBase64.startsWith('/9j/') ? 'JPEG' : 'PNG'}`);
-        console.log(`Garment photo format: ${garmentPhotoBase64.startsWith('/9j/') ? 'JPEG' : 'PNG'}`);
+        console.log(`Processed user photo size: ${userPhotoSize} bytes (${(userPhotoSize / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`Processed garment photo size: ${garmentPhotoSize} bytes (${(garmentPhotoSize / 1024 / 1024).toFixed(2)} MB)`);
 
-        // Get and log image dimensions
-        const userPhotoDimensions = BedrockImageManipulation.getImageDimensions(userPhotoBase64);
-        const garmentPhotoDimensions = BedrockImageManipulation.getImageDimensions(garmentPhotoBase64);
+        // Get and log processed image dimensions
+        const processedUserPhotoDimensions = BedrockImageManipulation.getImageDimensions(cleanUserPhotoBase64);
+        const processedGarmentPhotoDimensions = BedrockImageManipulation.getImageDimensions(cleanGarmentPhotoBase64);
 
-        if (userPhotoDimensions) {
-            console.log(`User photo dimensions: ${userPhotoDimensions.width}x${userPhotoDimensions.height}`);
-        } else {
-            console.warn('Could not extract user photo dimensions');
+        if (processedUserPhotoDimensions) {
+            console.log(`Processed user photo dimensions: ${processedUserPhotoDimensions.width}x${processedUserPhotoDimensions.height}`);
         }
 
-        if (garmentPhotoDimensions) {
-            console.log(`Garment photo dimensions: ${garmentPhotoDimensions.width}x${garmentPhotoDimensions.height}`);
-        } else {
-            console.warn('Could not extract garment photo dimensions');
+        if (processedGarmentPhotoDimensions) {
+            console.log(`Processed garment photo dimensions: ${processedGarmentPhotoDimensions.width}x${processedGarmentPhotoDimensions.height}`);
         }
 
         if (userPhotoSize > MAX_IMAGE_SIZE || garmentPhotoSize > MAX_IMAGE_SIZE) {
@@ -95,11 +105,11 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
 
         console.log('Images validated successfully');
 
-        // Step 3: Call Bedrock for virtual try-on
+        // Step 4: Call Bedrock for virtual try-on with cleaned images
         console.log('Calling Bedrock Nova Canvas for virtual try-on...');
         const result = await bedrockClient.virtualTryOn({
-            sourceImage: userPhotoBase64,
-            referenceImage: garmentPhotoBase64,
+            sourceImage: cleanUserPhotoBase64,
+            referenceImage: cleanGarmentPhotoBase64,
             garmentClass: (garmentClass as GarmentClass) || 'UPPER_BODY',
             maskShape: 'CONTOUR',
             mergeStyle: (mergeStyle as MergeStyle) || 'SEAMLESS',
@@ -107,7 +117,7 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
 
         console.log('Virtual try-on completed successfully');
 
-        // Step 4: Upload result to S3
+        // Step 5: Upload result to S3
         const resultKey = `tryon-results/${userId}/result-${historyId}.jpg`;
         console.log('Uploading result to S3:', resultKey);
 
