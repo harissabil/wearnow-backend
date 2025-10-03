@@ -149,9 +149,31 @@ export class BedrockImageManipulation {
      * Validates if the base64 image is in a supported format
      */
     static validateImageFormat(base64Image: string): boolean {
-        // Check for JPEG or PNG headers in base64
-        return base64Image.startsWith('/9j/') || // JPEG
-            base64Image.startsWith('iVBORw0KGgo'); // PNG
+        try {
+            const buffer = Buffer.from(base64Image, 'base64');
+
+            // Check for JPEG (FF D8)
+            const isJPEG = buffer[0] === 0xFF && buffer[1] === 0xD8;
+
+            // Check for PNG (89 50 4E 47)
+            const isPNG = buffer[0] === 0x89 &&
+                          buffer[1] === 0x50 &&
+                          buffer[2] === 0x4E &&
+                          buffer[3] === 0x47;
+
+            if (isJPEG) {
+                console.log('Image validated as JPEG');
+            } else if (isPNG) {
+                console.log('Image validated as PNG');
+            } else {
+                console.log(`Image validation failed - first 4 bytes: ${buffer.slice(0, 4).toString('hex')}`);
+            }
+
+            return isJPEG || isPNG;
+        } catch (error) {
+            console.error('Error validating image format:', error);
+            return false;
+        }
     }
 
     /**

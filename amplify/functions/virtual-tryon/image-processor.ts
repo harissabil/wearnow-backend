@@ -13,10 +13,16 @@ export class ImageProcessor {
             // Convert base64 to buffer
             const inputBuffer = Buffer.from(base64Image, 'base64');
 
+            console.log(`Input buffer first 4 bytes: ${inputBuffer.slice(0, 4).toString('hex')}`);
+
             // Check if it's a JPEG (starts with FF D8)
             if (inputBuffer[0] !== 0xFF || inputBuffer[1] !== 0xD8) {
-                // Not a JPEG, return as-is (PNG doesn't have EXIF issues usually)
-                console.log('Image is not JPEG, returning as-is');
+                // Not a JPEG, check if it's PNG
+                if (inputBuffer[0] === 0x89 && inputBuffer[1] === 0x50 && inputBuffer[2] === 0x4E && inputBuffer[3] === 0x47) {
+                    console.log('Image is PNG, returning as-is');
+                    return base64Image;
+                }
+                console.log(`Image format unknown (first bytes: ${inputBuffer.slice(0, 4).toString('hex')}), returning as-is`);
                 return base64Image;
             }
 
@@ -26,7 +32,9 @@ export class ImageProcessor {
             const cleanedBuffer = this.stripJPEGExif(inputBuffer);
 
             // Convert back to base64
-            return cleanedBuffer.toString('base64');
+            const result = cleanedBuffer.toString('base64');
+            console.log(`Cleaned JPEG - original size: ${base64Image.length}, new size: ${result.length}`);
+            return result;
         } catch (error) {
             console.error('Error processing image, returning original:', error);
             // If processing fails, return original
@@ -105,37 +113,43 @@ export class ImageProcessor {
             let width = 0;
             let height = 0;
 
-            // Check for JPEG
+            console.log(`Checking image format - first 4 bytes: ${inputBuffer.slice(0, 4).toString('hex')}`);
+
+            // Check for JPEG (FF D8)
             if (inputBuffer[0] === 0xFF && inputBuffer[1] === 0xD8) {
                 format = 'jpeg';
 
                 // Check for EXIF (APP1 marker)
                 let i = 2;
-                while (i < Math.min(inputBuffer.length - 1, 1000)) {
+                while (i < Math.min(inputBuffer.length - 1, 10000)) {
                     if (inputBuffer[i] === 0xFF) {
                         const marker = inputBuffer[i + 1];
                         if (marker === 0xE1) {
                             hasExif = true;
+                            console.log(`Found EXIF at position ${i}`);
                         }
-                        // Look for SOF0 marker for dimensions
-                        if (marker === 0xC0) {
+                        // Look for SOF0 marker for dimensions (0xC0, 0xC1, 0xC2)
+                        if (marker === 0xC0 || marker === 0xC1 || marker === 0xC2) {
                             height = inputBuffer.readUInt16BE(i + 5);
                             width = inputBuffer.readUInt16BE(i + 7);
+                            console.log(`Found dimensions at SOF marker 0x${marker.toString(16)}: ${width}x${height}`);
                             break;
                         }
                         // Skip to next marker
                         if (marker >= 0xD0 && marker <= 0xD9) {
                             i += 2;
-                        } else {
+                        } else if (i + 2 < inputBuffer.length) {
                             const segmentLength = inputBuffer.readUInt16BE(i + 2);
                             i += 2 + segmentLength;
+                        } else {
+                            break;
                         }
                     } else {
                         break;
                     }
                 }
             }
-            // Check for PNG
+            // Check for PNG (89 50 4E 47)
             else if (
                 inputBuffer[0] === 0x89 &&
                 inputBuffer[1] === 0x50 &&
@@ -144,8 +158,10 @@ export class ImageProcessor {
             ) {
                 format = 'png';
                 // PNG dimensions at bytes 16-20
-                width = inputBuffer.readUInt32BE(16);
-                height = inputBuffer.readUInt32BE(20);
+                if (inputBuffer.length > 24) {
+                    width = inputBuffer.readUInt32BE(16);
+                    height = inputBuffer.readUInt32BE(20);
+                }
             }
 
             return {
