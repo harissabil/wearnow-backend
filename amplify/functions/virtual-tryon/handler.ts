@@ -2,6 +2,7 @@ import type {Schema} from "../../data/resource";
 import {BedrockImageManipulation, GarmentClass, MergeStyle} from './bedrock-client';
 import {S3Utils} from './s3-utils';
 import {ImageProcessor} from './image-processor';
+import {DynamoDBUtils} from './dynamodb-utils';
 
 export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) => {
     const startTime = Date.now();
@@ -41,6 +42,9 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
             errorMessage: 'S3_BUCKET_NAME environment variable not configured',
         };
     }
+
+    // Initialize DynamoDB client
+    const dynamoDBUtils = new DynamoDBUtils('ap-southeast-1');
 
     try {
         // Initialize clients
@@ -147,6 +151,16 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
         await s3Utils.uploadBase64Image(resultKey, result.image, contentType);
 
         const processingTime = Date.now() - startTime;
+        const completedAt = new Date().toISOString();
+
+        // Step 6: Update TryOnHistory in DynamoDB
+        console.log('Updating TryOnHistory in database...');
+        await dynamoDBUtils.updateTryOnHistory(historyId, {
+            status: 'COMPLETED',
+            resultPhotoUrl: resultKey,
+            completedAt: completedAt,
+        });
+        console.log('TryOnHistory updated successfully');
 
         return {
             success: true,
@@ -160,6 +174,20 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
 
         const processingTime = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+        // Update TryOnHistory with FAILED status
+        try {
+            console.log('Updating TryOnHistory with FAILED status...');
+            await dynamoDBUtils.updateTryOnHistory(historyId, {
+                status: 'FAILED',
+                errorMessage: errorMessage,
+                completedAt: new Date().toISOString(),
+            });
+            console.log('TryOnHistory updated with FAILED status');
+        } catch (dbError) {
+            console.error('Failed to update TryOnHistory with error status:', dbError);
+            // Don't throw - we still want to return the error to the client
+        }
 
         return {
             success: false,

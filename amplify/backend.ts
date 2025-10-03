@@ -36,6 +36,15 @@ backend.virtualTryonFunction.addEnvironment(
     backend.storage.resources.bucket.bucketName
 );
 
+// Set DynamoDB table name as environment variable for virtual-tryon function
+// Using Amplify's table naming pattern to avoid circular dependency
+// Amplify Gen2 creates tables with pattern: {ModelName}-{AppId}-{Environment}
+// We'll pass the stack name and let the Lambda construct the full table name
+backend.virtualTryonFunction.addEnvironment(
+    'STACK_NAME',
+    backend.virtualTryonFunction.resources.lambda.stack.stackName
+);
+
 // Grant DynamoDB permissions to virtual-tryon function using wildcard to avoid circular dependency
 const dynamoDbPolicy = new Policy(
     backend.virtualTryonFunction.resources.lambda.stack,
