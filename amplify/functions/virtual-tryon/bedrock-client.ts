@@ -54,11 +54,12 @@ export class BedrockImageManipulation {
             sourceImage,
             referenceImage,
             garmentClass = 'UPPER_BODY',
-            mergeStyle = 'BALANCED',
+            maskShape = 'CONTOUR',
+            mergeStyle = 'SEAMLESS',
         } = params;
 
         // Prepare the request payload for Amazon Bedrock Nova Canvas
-        // Using minimal required fields with explicit defaults to avoid validation errors
+        // Based on AWS Hero's working example
         const requestBody = {
             taskType: 'VIRTUAL_TRY_ON',
             virtualTryOnParams: {
@@ -66,15 +67,21 @@ export class BedrockImageManipulation {
                 referenceImage: referenceImage,
                 maskType: 'GARMENT',
                 garmentBasedMask: {
+                    maskShape: maskShape,
                     garmentClass: garmentClass,
                 },
+                maskExclusions: {
+                    preserveFace: 'ON',
+                    preserveHands: 'ON',
+                    preserveBodyPose: 'ON',
+                },
                 mergeStyle: mergeStyle,
+                returnMask: false,
             },
             imageGenerationConfig: {
                 numberOfImages: 1,
-                quality: 'standard',
-                cfgScale: 6.5,
-                seed: 12,
+                quality: 'premium',
+                cfgScale: 7.5,
             },
         };
 

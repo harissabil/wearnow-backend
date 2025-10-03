@@ -101,8 +101,8 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
             sourceImage: userPhotoBase64,
             referenceImage: garmentPhotoBase64,
             garmentClass: (garmentClass as GarmentClass) || 'UPPER_BODY',
-            maskShape: 'DEFAULT',
-            mergeStyle: (mergeStyle as MergeStyle) || 'BALANCED',
+            maskShape: 'CONTOUR',
+            mergeStyle: (mergeStyle as MergeStyle) || 'SEAMLESS',
         });
 
         console.log('Virtual try-on completed successfully');
