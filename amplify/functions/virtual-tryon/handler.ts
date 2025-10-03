@@ -59,15 +59,15 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
         // Step 2: Process images to remove EXIF and clean for Bedrock
         console.log('Processing images to remove EXIF metadata and optimize for Bedrock...');
 
-        const userPhotoInfo = await ImageProcessor.getImageInfo(userPhotoBase64);
+        const userPhotoInfo = ImageProcessor.getImageInfo(userPhotoBase64);
         console.log('Original user photo info:', userPhotoInfo);
 
-        const garmentPhotoInfo = await ImageProcessor.getImageInfo(garmentPhotoBase64);
+        const garmentPhotoInfo = ImageProcessor.getImageInfo(garmentPhotoBase64);
         console.log('Original garment photo info:', garmentPhotoInfo);
 
         // Process images to remove EXIF and optimize
-        const cleanUserPhotoBase64 = await ImageProcessor.processImageForBedrock(userPhotoBase64);
-        const cleanGarmentPhotoBase64 = await ImageProcessor.processImageForBedrock(garmentPhotoBase64);
+        const cleanUserPhotoBase64 = ImageProcessor.processImageForBedrock(userPhotoBase64);
+        const cleanGarmentPhotoBase64 = ImageProcessor.processImageForBedrock(garmentPhotoBase64);
 
         console.log('Images processed and cleaned for Bedrock');
 
