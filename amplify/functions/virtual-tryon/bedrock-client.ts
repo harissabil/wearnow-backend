@@ -54,11 +54,11 @@ export class BedrockImageManipulation {
             sourceImage,
             referenceImage,
             garmentClass = 'UPPER_BODY',
-            maskShape = 'DEFAULT',
             mergeStyle = 'BALANCED',
         } = params;
 
         // Prepare the request payload for Amazon Bedrock Nova Canvas
+        // Using minimal required fields with explicit defaults to avoid validation errors
         const requestBody = {
             taskType: 'VIRTUAL_TRY_ON',
             virtualTryOnParams: {
@@ -66,19 +66,15 @@ export class BedrockImageManipulation {
                 referenceImage: referenceImage,
                 maskType: 'GARMENT',
                 garmentBasedMask: {
-                    maskShape: maskShape,
                     garmentClass: garmentClass,
-                },
-                maskExclusions: {
-                    preserveBodyPose: 'ON',
-                    preserveHands: 'ON',
-                    preserveFace: 'ON',
                 },
                 mergeStyle: mergeStyle,
             },
             imageGenerationConfig: {
                 numberOfImages: 1,
-                quality: 'premium',
+                quality: 'standard',
+                cfgScale: 6.5,
+                seed: 12,
             },
         };
 
@@ -102,6 +98,8 @@ export class BedrockImageManipulation {
             const response = await this.client.send(command);
             const responseBody = JSON.parse(new TextDecoder().decode(response.body));
 
+            console.log('Bedrock response status:', response.$metadata);
+            console.log('Bedrock response body keys:', Object.keys(responseBody));
             console.log('Bedrock response:', JSON.stringify({
                 ...responseBody,
                 images: responseBody.images ? `[${responseBody.images.length} images]` : undefined,
@@ -109,13 +107,13 @@ export class BedrockImageManipulation {
                 maskImage: responseBody.maskImage ? '[MASK_DATA]' : undefined
             }));
 
-            // Check for error field in response
+            // Check for error field in response (from documentation: error field contains error info)
             if (responseBody.error) {
                 throw new Error(`Bedrock API error: ${responseBody.error}`);
             }
 
             if (!responseBody.images || responseBody.images.length === 0) {
-                throw new Error('No images returned from Bedrock - all images may have been blocked by content moderation');
+                throw new Error('No images returned from Bedrock - all images may have been blocked by content moderation or input validation failed');
             }
 
             return {
