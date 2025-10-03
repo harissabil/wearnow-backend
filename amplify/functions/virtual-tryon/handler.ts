@@ -68,6 +68,27 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
         const userPhotoSize = BedrockImageManipulation.getImageSize(userPhotoBase64);
         const garmentPhotoSize = BedrockImageManipulation.getImageSize(garmentPhotoBase64);
 
+        console.log(`User photo size: ${userPhotoSize} bytes (${(userPhotoSize / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`Garment photo size: ${garmentPhotoSize} bytes (${(garmentPhotoSize / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`User photo format: ${userPhotoBase64.startsWith('/9j/') ? 'JPEG' : 'PNG'}`);
+        console.log(`Garment photo format: ${garmentPhotoBase64.startsWith('/9j/') ? 'JPEG' : 'PNG'}`);
+
+        // Get and log image dimensions
+        const userPhotoDimensions = BedrockImageManipulation.getImageDimensions(userPhotoBase64);
+        const garmentPhotoDimensions = BedrockImageManipulation.getImageDimensions(garmentPhotoBase64);
+
+        if (userPhotoDimensions) {
+            console.log(`User photo dimensions: ${userPhotoDimensions.width}x${userPhotoDimensions.height}`);
+        } else {
+            console.warn('Could not extract user photo dimensions');
+        }
+
+        if (garmentPhotoDimensions) {
+            console.log(`Garment photo dimensions: ${garmentPhotoDimensions.width}x${garmentPhotoDimensions.height}`);
+        } else {
+            console.warn('Could not extract garment photo dimensions');
+        }
+
         if (userPhotoSize > MAX_IMAGE_SIZE || garmentPhotoSize > MAX_IMAGE_SIZE) {
             throw new Error('Image size exceeds maximum allowed size (10MB)');
         }
@@ -80,6 +101,7 @@ export const handler: Schema["virtualTryOn"]["functionHandler"] = async (event) 
             sourceImage: userPhotoBase64,
             referenceImage: garmentPhotoBase64,
             garmentClass: (garmentClass as GarmentClass) || 'UPPER_BODY',
+            maskShape: 'DEFAULT',
             mergeStyle: (mergeStyle as MergeStyle) || 'BALANCED',
         });
 

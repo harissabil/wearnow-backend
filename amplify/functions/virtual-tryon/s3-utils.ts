@@ -19,6 +19,8 @@ export class S3Utils {
      */
     async downloadImageAsBase64(key: string): Promise<string> {
         try {
+            console.log(`Downloading from S3 - Bucket: ${this.bucketName}, Key: ${key}`);
+
             const command = new GetObjectCommand({
                 Bucket: this.bucketName,
                 Key: key,
@@ -37,7 +39,9 @@ export class S3Utils {
             }
             const buffer = Buffer.concat(chunks);
 
-            // Convert to base64
+            console.log(`Downloaded ${buffer.length} bytes from S3`);
+
+            // Convert to base64 (without data URI prefix)
             return buffer.toString('base64');
         } catch (error) {
             console.error('Error downloading from S3:', error);
