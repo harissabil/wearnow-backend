@@ -10,7 +10,7 @@ export class S3Utils {
     private bucketName: string;
 
     constructor(region: string = 'ap-southeast-1', bucketName: string) {
-        this.client = new S3Client({region});
+        this.client = new S3Client({region: 'ap-southeast-1'});
         this.bucketName = bucketName;
     }
 
