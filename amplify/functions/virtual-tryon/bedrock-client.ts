@@ -45,7 +45,7 @@ export class BedrockImageManipulation {
     private modelId: string;
 
     constructor(region: string = 'us-east-1', modelId: string = 'amazon.nova-canvas-v1:0') {
-        this.client = new BedrockRuntimeClient({region});
+        this.client = new BedrockRuntimeClient({region: 'us-east-1'});
         this.modelId = modelId;
     }
 
@@ -90,16 +90,16 @@ export class BedrockImageManipulation {
                 ...requestBody,
                 virtualTryOnParams: {
                     ...requestBody.virtualTryOnParams,
-                    sourceImage: '[BASE64_DATA]',
-                    referenceImage: '[BASE64_DATA]',
+                    sourceImage: sourceImage.substring(0, 30) + '...[TRUNCATED]',
+                    referenceImage: referenceImage.substring(0, 30) + '...[TRUNCATED]',
                 }
             }));
 
             const command = new InvokeModelCommand({
                 modelId: this.modelId,
+                body: JSON.stringify(requestBody),
                 contentType: 'application/json',
                 accept: 'application/json',
-                body: JSON.stringify(requestBody),
             });
 
             const response = await this.client.send(command);
@@ -174,7 +174,7 @@ export class BedrockImageManipulation {
                 // PNG header at bytes 16-24 contains width and height
                 const width = buffer.readUInt32BE(16);
                 const height = buffer.readUInt32BE(20);
-                return { width, height };
+                return {width, height};
             }
 
             // Check for JPEG
@@ -185,7 +185,7 @@ export class BedrockImageManipulation {
                     if (buffer[i] === 0xFF && buffer[i + 1] === 0xC0) {
                         const height = buffer.readUInt16BE(i + 5);
                         const width = buffer.readUInt16BE(i + 7);
-                        return { width, height };
+                        return {width, height};
                     }
                 }
             }
